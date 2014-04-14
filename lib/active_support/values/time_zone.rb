@@ -284,23 +284,27 @@ module ActiveSupport
     #   Time.zone.parse('22:30:00') # => Fri, 31 Dec 1999 22:30:00 HST -10:00
     def parse(str, now=now())
       parts = Date._parse(str, false)
-      return if parts.empty?
 
-      time = Time.new(
-        parts.fetch(:year, now.year),
-        parts.fetch(:mon, now.month),
-        parts.fetch(:mday, now.day),
-        parts.fetch(:hour, 0),
-        parts.fetch(:min, 0),
-        parts.fetch(:sec, 0) + parts.fetch(:sec_fraction, 0),
-        parts.fetch(:offset, 0)
-      )
+      time_from_date_parts(parts, now)
+    end
 
-      if parts[:offset]
-        TimeWithZone.new(time.utc, self)
-      else
-        TimeWithZone.new(nil, self, time)
-      end
+    # Method for creating new ActiveSupport::TimeWithZone instance in the time zone
+    # of +self+ from a time string and format string.
+    #
+    #   Time.zone = 'Hawaii'                   # => "Hawaii"
+    #   Time.zone.strptime('1999-12-31 14:00:00', '%Y-%m-%d %H:%M:S) 
+    #   # => Fri, 31 Dec 1999 14:00:00 HST -10:00
+    #
+    # If upper components are missing from the string, they are supplied from
+    # TimeZone#now:
+    #
+    #   Time.zone.now               # => Fri, 31 Dec 1999 14:00:00 HST -10:00
+    #   Time.zone.strptime('22:30:00', '%H:%M:%S) 
+    #   # => Fri, 31 Dec 1999 22:30:00 HST -10:00
+    def strptime(str, format_str, now=now())
+      parts = Date._strptime(str, format_str, false)
+
+      time_from_date_parts(parts, now)
     end
 
     # Returns an ActiveSupport::TimeWithZone instance representing the current
@@ -416,6 +420,26 @@ module ActiveSupport
 
     def time_now
       Time.now
+    end
+
+    def time_from_date_parts(parts, now=now())
+      return if parts.empty?
+
+      time = Time.new(
+        parts.fetch(:year, now.year),
+        parts.fetch(:mon, now.month),
+        parts.fetch(:mday, now.day),
+        parts.fetch(:hour, 0),
+        parts.fetch(:min, 0),
+        parts.fetch(:sec, 0) + parts.fetch(:sec_fraction, 0),
+        parts.fetch(:offset, 0)
+      )
+
+      if parts[:offset]
+        TimeWithZone.new(time.utc, self)
+      else
+        TimeWithZone.new(nil, self, time)
+      end
     end
   end
 end
